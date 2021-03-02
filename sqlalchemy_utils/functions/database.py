@@ -458,7 +458,8 @@ def database_exists(url):
         return header[:16] == b'SQLite format 3\x00'
 
     url = copy(make_url(url))
-    database, url.database = url.database, None
+    database = url.database
+    url = url.set(database='')
     engine = sa.create_engine(url)
 
     if engine.dialect.name == 'postgresql':
@@ -523,7 +524,7 @@ def create_database(url, encoding='utf8', template=None):
     database = url.database
 
     if url.drivername.startswith('postgres'):
-        url.database = 'postgres'
+        url = url.set(database='postgres')
     elif url.drivername.startswith('mssql'):
         url.database = 'master'
     elif not url.drivername.startswith('sqlite'):
@@ -599,7 +600,7 @@ def drop_database(url):
     database = url.database
 
     if url.drivername.startswith('postgres'):
-        url.database = 'postgres'
+        url = url.set(database='postgres')
     elif url.drivername.startswith('mssql'):
         url.database = 'master'
     elif not url.drivername.startswith('sqlite'):
