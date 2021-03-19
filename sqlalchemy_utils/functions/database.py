@@ -457,10 +457,32 @@ def database_exists(url):
 
         return header[:16] == b'SQLite format 3\x00'
 
-    url = copy(make_url(url))
-    database = url.database
-    url = url.set(database='')
-    engine = sa.create_engine(url)
+    class UrlWrapper:
+        url = {}
+
+        def __init__(self, url):
+            self.__class__.url[id(self)] = url
+
+        def __getattr__(self, key, **kw):
+            return getattr(self.url[id(self)], key, **kw)
+
+        def __setattr__(self, key, value):
+            try:
+                setattr(self.url[id(self)], key, value)
+            except AttributeError:
+                if value is None:
+                    value = ''
+
+                self.__class__.url[id(self)] = self.url[id(self)].set(
+                    **{key: value})
+
+        def __call__(self):
+            return self.url[id(self)]
+
+    url = UrlWrapper(copy(make_url(url)))
+
+    database, url.database = url.database, None
+    engine = sa.create_engine(url())
 
     if engine.dialect.name == 'postgresql':
         text = "SELECT 1 FROM pg_database WHERE datname='%s'" % database
@@ -485,7 +507,7 @@ def database_exists(url):
         text = 'SELECT 1'
         try:
             url.database = database
-            engine = sa.create_engine(url)
+            engine = sa.create_engine(url())
             result = engine.execute(text)
             result.close()
             return True
