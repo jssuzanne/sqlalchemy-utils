@@ -548,9 +548,9 @@ def create_database(url, encoding='utf8', template=None):
     if url.drivername.startswith('postgres'):
         url = url.set(database='postgres')
     elif url.drivername.startswith('mssql'):
-        url.database = 'master'
+        url = url.set(database='master')
     elif not url.drivername.startswith('sqlite'):
-        url.database = None
+        url = url.set(database='')
 
     if url.drivername == 'mssql+pyodbc':
         engine = sa.create_engine(url, connect_args={'autocommit': True})
